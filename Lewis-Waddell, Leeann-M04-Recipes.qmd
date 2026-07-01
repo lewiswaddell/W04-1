@@ -23,33 +23,58 @@ execute:
   freeze: true
 ---
 
+
 # Video Quizzes
 
----
-title: "Video Quiz: Foundations of Logistic Regression"
-subtitle: "Prelude to Module 2, Steps 1-1 through 2-1"
-author: "Jae Jung"
-date: today
-format:
-  html:
-    toc: true
-    toc-depth: 3
-    toc-expand: 1
-    toc-location: right-body
-    toc-title: "Questions"
-    number-sections: true
-    code-fold: show
-    code-tools: true
-    theme: cosmo
-    highlight-style: github
-    df-print: paged
-    link-external-newwindow: true
-    #embed-resources: true
-execute:
-  warning: false
-  message: false
-  freeze: true
----
+```{r setup}
+library(tidyverse)
+
+# Recreate the direct-mail dataset used throughout the course
+set.seed(123)
+n <- 3000
+
+mail_data <- tibble(
+  customer_id = paste0("C", str_pad(1:n, 5, pad = "0")),
+  age = round(rnorm(n, mean = 45, sd = 12)),
+  income = round(rlnorm(n, meanlog = 10.8, sdlog = 0.6)),
+  recency_days = round(rexp(n, rate = 1 / 60)),
+  freq_12mo = rpois(n, lambda = 3),
+  avg_order_amt = round(rlnorm(n, meanlog = 4.2, sdlog = 0.5), 2),
+  channel = sample(
+    c("email", "direct_mail", "digital"),
+    n,
+    replace = TRUE,
+    prob = c(0.5, 0.3, 0.2)
+  ),
+  region = sample(
+    c("West", "South", "Midwest", "Northeast"),
+    n,
+    replace = TRUE
+  ),
+  loyalty_tier = sample(
+    c("Bronze", "Silver", "Gold", "Platinum"),
+    n,
+    replace = TRUE,
+    prob = c(0.4, 0.3, 0.2, 0.1)
+  ),
+  responded = rbinom(
+    n,
+    1,
+    prob = plogis(
+      -3 +
+        0.02 * (age - 45) +
+        0.3 * log(income / 50000) +
+        0.1 * freq_12mo -
+        0.005 * recency_days
+    )
+  )
+) |>
+  mutate(
+    income = if_else(runif(n) < 0.08, NA_real_, income),
+    avg_order_amt = if_else(runif(n) < 0.05, NA_real_, avg_order_amt),
+    responded = factor(responded, levels = c(1, 0), labels = c("yes", "no"))
+  )
+```
 
 ------------------------------------------------------------------------
 
@@ -397,9 +422,55 @@ In the Week 2 notebook, `augment()` returns both `.pred_yes` (a probability) and
 2.  The default threshold for `.pred_class` is 0.5. Given the 4.7% response rate, why might 0.5 be a poor threshold for a direct-mail campaign?
 3.  What threshold might make more business sense — and what metric from Week 3 would you use to evaluate the impact of changing it?
 
-```{r q4-4, eval=FALSE}
+```{r q4-4, eval=TRUE}
 library(tidymodels)
+library(tidyverse)
+library(glmnet)
+
 tidymodels_prefer()
+
+mail_data <- tibble(
+  customer_id = paste0("C", str_pad(1:n, 5, pad = "0")),
+  age = round(rnorm(n, mean = 45, sd = 12)),
+  income = round(rlnorm(n, meanlog = 10.8, sdlog = 0.6)),
+  recency_days = round(rexp(n, rate = 1 / 60)),
+  freq_12mo = rpois(n, lambda = 3),
+  avg_order_amt = round(rlnorm(n, meanlog = 4.2, sdlog = 0.5), 2),
+  channel = sample(
+    c("email", "direct_mail", "digital"),
+    n,
+    replace = TRUE,
+    prob = c(0.5, 0.3, 0.2)
+  ),
+  region = sample(
+    c("West", "South", "Midwest", "Northeast"),
+    n,
+    replace = TRUE
+  ),
+  loyalty_tier = sample(
+    c("Bronze", "Silver", "Gold", "Platinum"),
+    n,
+    replace = TRUE,
+    prob = c(0.4, 0.3, 0.2, 0.1)
+  ),
+  responded = rbinom(
+    n,
+    1,
+    prob = plogis(
+      -3 +
+        0.02 * (age - 45) +
+        0.3 * log(income / 50000) +
+        0.1 * freq_12mo -
+        0.005 * recency_days
+    )
+  )
+) |>
+  mutate(
+    income = if_else(runif(n) < 0.08, NA_real_, income),
+    avg_order_amt = if_else(runif(n) < 0.05, NA_real_, avg_order_amt),
+    responded = factor(responded, levels = c(1, 0), labels = c("yes", "no"))
+  )
+
 
 mail_split <- initial_split(mail_data, prop = 0.80, strata = responded)
 mail_train <- training(mail_split)
@@ -466,11 +537,11 @@ The four videos form a conceptual chain: **Logs → Odds → Odds Ratios → Log
     -   How does the logit (log odds) become the linear predictor inside logistic regression?
 2.  In the context of the direct-mail campaign in `mail_data`, describe in one sentence what the logistic regression model is actually computing when it produces `.pred_yes = 0.08` for a specific customer.
 
-# Log Assignments: Setup
+# Log Assignments
 
 Run this chunk first — it loads the packages and recreates the direct-mail dataset used throughout the course.
 
-```{r setup}
+```{r setup-log}
 library(tidyverse)
 
 # ── Recreate the direct-mail dataset ─────────────────────────────────────────
@@ -658,9 +729,9 @@ tibble(
 
 ------------------------------------------------------------------------
 
-# Exercises: Setup
+# Exercises
 
-```{r setup}
+```{r setup-exercises}
 library(tidymodels) # umbrella: rsample, recipes, parsnip, workflows, yardstick
 library(tidyverse)
 library(janitor) # clean_names()
@@ -682,10 +753,6 @@ Change `prop` to `0.70` and re-run the split. How many records move from trainin
 ```
 
 ------------------------------------------------------------------------
-
-------------------------------------------------------------------------
-
-# Exercises
 
 ## ✏️ Exercise 8.1 — Alternative Imputation
 
