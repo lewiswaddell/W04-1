@@ -1396,3 +1396,7 @@ sessionInfo()
 ```
 
 # Appendix
+
+-   [GitHub Repo](https://github.com/lewiswaddell/W04-1.git)
+
+-   [GitHub Website](https://lewiswaddell.github.io/W04-1/)
